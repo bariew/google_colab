@@ -1,0 +1,43 @@
+#!/bin/bash
+
+PATH=$DIR:/bin:/usr/bin:xxx
+export PATH
+# cli - script for building commit.
+# rm -rf "`composer config cache-dir`"
+
+COMMAND=$1;
+PARAM1=$2;
+DIR=$( pwd );
+case "$COMMAND" in
+    commit)
+      git add -A ; git commit --amend --no-edit ; git push -f ; ../cli build
+      ;;
+    init)
+      source venv/bin/activate
+      ;;
+    down)
+      deactivate
+      ;;
+    build)
+        SERVER="prizma"
+          if [ -z "$PARAM1" ]
+        then
+            PARAM1="update"
+        fi
+        /usr/bin/scp $DIR/../cli $SERVER:$DIR/../cli
+        /usr/bin/rsync --recursive --links --compress --compress-level=9 --delete-after -e '/usr/bin/ssh -o Compression=no -x' --exclude-from=$DIR/.gitignore $DIR/ $SERVER:$DIR/
+        /usr/bin/ssh $SERVER "cd $DIR ; sh ../cli $PARAM1"
+        ;;
+    update)
+        /bin/cp --no-clobber $DIR/local.py.example $DIR/local.py
+        /usr/bin/pip3 install -r $DIR/requirements.txt
+        /usr/bin/pkill -f $DIR/main.py
+        /usr/bin/python3 $DIR/main.py
+        ;;
+    kill)
+        /usr/bin/pkill -f $DIR/main.py
+        ;;
+    *)
+        echo "Available commands: update, delete, test, merge, build"
+        ;;
+esac
